@@ -6,5 +6,10 @@
   },
   "dependencies": {
     "socket.io": "^4.8.1"
+  },
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
   }
 }
