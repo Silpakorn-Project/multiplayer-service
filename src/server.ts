@@ -11,8 +11,8 @@ const io = new Server(httpServer, {
   },
 });
 
-const ROOMS: {[key: string]: string[]} = {};
-const MAX_PLAYERS = 4;
+const ROOMS: { [key: string]: string[] } = {};
+const MAX_PLAYERS: number = 4;
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
@@ -46,6 +46,7 @@ io.on("connection", (socket) => {
     io.to(room).emit("roomUpdate", ROOMS[room]);
 
     // เมื่อผู้เล่นออกจากระบบ
+    // disconnect room
     socket.on("disconnect", () => {
       console.log(`User disconnected: ${socket.id}`);
       ROOMS[room] = ROOMS[room].filter((id) => id !== socket.id);
@@ -57,6 +58,15 @@ io.on("connection", (socket) => {
         io.to(room).emit("roomUpdate", ROOMS[room]);
       }
     });
+  });
+
+  setInterval(() => {
+    io.emit("server time", new Date().toISOString());
+  }, 1000);
+
+  //disconeect server
+  socket.on("disconnect", () => {
+    console.log(`User disconnected: ${socket.id}`);
   });
 
   // รับข้อความแล้วส่งให้ทุกคนในห้องเดียวกัน
