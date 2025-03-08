@@ -14,6 +14,11 @@ const io = new Server(httpServer, {
 const ROOMS: { [key: string]: string[] } = {};
 const MAX_PLAYERS: number = 4;
 
+interface DataType {
+  userId: string;
+  roomId: string;
+}
+
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
@@ -31,7 +36,7 @@ io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`);
 
   // เมื่อผู้ใช้เข้าร่วมระบบ
-  socket.on("joinRoom", () => {
+  socket.on("joinRoom", (data: DataType) => {
     let room = findAvailableRoom();
 
     if (!room) {
@@ -79,6 +84,6 @@ io.on("connection", (socket) => {
   });
 });
 
-httpServer.listen(3000, () => {
-  console.log("Server running on port 3000")
+httpServer.listen(8000, () => {
+  console.log("Server running on port 8000")
 });
