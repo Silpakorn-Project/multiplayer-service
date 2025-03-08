@@ -11,12 +11,20 @@ const io = new Server(httpServer, {
   },
 });
 
-const ROOMS: { [key: string]: string[] } = {};
+interface DetailRoomType {
+  userId: string;
+  username: string;
+  socketId: string;
+}
+
+// const ROOMS: { [key: string]: string[] } = {};
+const ROOMS: { [key: string]: DetailRoomType[]} = {};
+
 const MAX_PLAYERS: number = 4;
 
 interface DataType {
   userId: string;
-  roomId: string;
+  username: string;
 }
 
 app.get("/", (req, res) => {
@@ -45,7 +53,13 @@ io.on("connection", (socket) => {
       console.log(`Created new room: ${room}`);
     }
 
-    ROOMS[room].push(socket.id);
+    // ROOMS[room].push(socket.id);
+    ROOMS[room].push({
+      userId: data.userId,
+      username: data.username,
+      socketId: socket.id
+    });
+
     socket.join(room);
     console.log(`User ${socket.id} joined ${room}`);
     io.to(room).emit("roomUpdate", ROOMS[room]);
@@ -54,7 +68,8 @@ io.on("connection", (socket) => {
     // disconnect room
     socket.on("disconnect", () => {
       console.log(`User disconnected: ${socket.id}`);
-      ROOMS[room] = ROOMS[room].filter((id) => id !== socket.id);
+      // ROOMS[room] = ROOMS[room].filter((id) => id !== socket.id);
+      ROOMS[room] = ROOMS[room].filter((detail) => detail.socketId !== socket.id);
 
       if (ROOMS[room].length === 0) {
         delete ROOMS[room];
@@ -76,7 +91,8 @@ io.on("connection", (socket) => {
 
   // รับข้อความแล้วส่งให้ทุกคนในห้องเดียวกัน
   socket.on("message", (msg: string) => {
-    const room = Object.keys(ROOMS).find((r) => ROOMS[r].includes(socket.id));
+    // const room = Object.keys(ROOMS).find((r) => ROOMS[r].includes(socket.id));
+    const room = Object.keys(ROOMS).find((r) => ROOMS[r].some((detail) => detail.socketId === socket.id)); // หาห้องที่มี socket.id นี้อยู่
     if (room) {
       console.log(`Received message in ${room}:`, msg);
       socket.to(room).emit("message", msg);
@@ -84,6 +100,6 @@ io.on("connection", (socket) => {
   });
 });
 
-httpServer.listen(8000, () => {
-  console.log("Server running on port 8000")
+httpServer.listen(5555, () => {
+  console.log("Server running on port 5555")
 });
