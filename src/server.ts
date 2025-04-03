@@ -38,6 +38,49 @@ function findAvailableRoom(): string | null {
   return null;
 }
 
+function startCountdown(room: string) {
+  let countdown = 10;
+  let countdownInterval: NodeJS.Timeout | null = null;
+
+  const resetCountdown = () => {
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+    countdown = 10;
+    io.to(room).emit("countdown", countdown);
+  };
+
+  const checkAndStartCountdown = () => {
+    if (!ROOMS[room] || ROOMS[room].length < 2) {
+      resetCountdown(); // ถ้าผู้เล่นออกก่อนเริ่ม ให้รีเซ็ต
+      return;
+    }
+
+    if (!countdownInterval) {
+      countdownInterval = setInterval(() => {
+        if (!ROOMS[room] || ROOMS[room].length < 2) {
+          resetCountdown();
+          return;
+        }
+
+        io.to(room).emit("countdown", countdown);
+        console.log(`Countdown for ${room}: ${countdown}`);
+
+        if (countdown === 0) {
+          clearInterval(countdownInterval!);
+          countdownInterval = null;
+          io.to(room).emit("gameStart"); // ส่งไปให้ client เปลี่ยนหน้า
+          console.log(`Game started for ${room}`);
+        }
+        countdown--;
+      }, 1000);
+    }
+  };
+
+  checkAndStartCountdown();
+}
+
 function removePlayerByUserId(userId: string) {
   try {
     // ทำสำเนาของ keys เพื่อป้องกันการแก้ไขใน loop
@@ -106,6 +149,12 @@ io.on("connection", (socket) => {
 
       // บันทึกห้องปัจจุบัน
       currentRoom = room;
+
+      // ถ้ามีผู้เล่นครบ 2 คน ให้เริ่มนับถอยหลัง
+      if (ROOMS[room].length === 2) {
+        startCountdown(room);
+      }
+
     } catch (error) {
       console.error("Error in joinRoom:", error);
     }
