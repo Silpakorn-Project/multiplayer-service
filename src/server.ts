@@ -17,6 +17,11 @@ interface DetailRoomType {
   socketId: string;
 }
 
+// interface RoomType {
+//   players: DetailRoomType[];
+//   gameStarted: boolean;
+// }
+
 const ROOMS: { [key: string]: DetailRoomType[] } = {};
 const MAX_PLAYERS: number = 4;
 
