@@ -17,12 +17,12 @@ interface DetailRoomType {
   socketId: string;
 }
 
-// interface RoomType {
-//   players: DetailRoomType[];
-//   gameStarted: boolean;
-// }
+interface RoomType {
+  players: DetailRoomType[];
+  gameStarted: boolean;
+}
 
-const ROOMS: { [key: string]: DetailRoomType[] } = {};
+const ROOMS: { [key: string]: RoomType } = {};
 const MAX_PLAYERS: number = 4;
 
 interface DataType {
@@ -36,7 +36,7 @@ app.get("/", (req, res) => {
 
 function findAvailableRoom(): string | null {
   for (const room in ROOMS) {
-    if (ROOMS[room].length < MAX_PLAYERS) {
+    if (ROOMS[room].players.length < MAX_PLAYERS && !ROOMS[room].gameStarted) {
       return room;
     }
   }
@@ -57,14 +57,14 @@ function startCountdown(room: string) {
   };
 
   const checkAndStartCountdown = () => {
-    if (!ROOMS[room] || ROOMS[room].length < 2) {
+    if (!ROOMS[room] || ROOMS[room].players.length < 2) {
       resetCountdown(); // ถ้าผู้เล่นออกก่อนเริ่ม ให้รีเซ็ต
       return;
     }
 
     if (!countdownInterval) {
       countdownInterval = setInterval(() => {
-        if (!ROOMS[room] || ROOMS[room].length < 2) {
+        if (!ROOMS[room] || ROOMS[room].players.length < 2) {
           resetCountdown();
           return;
         }
@@ -94,9 +94,9 @@ function removePlayerByUserId(userId: string) {
     for (const room of roomKeys) {
       if (!ROOMS[room]) continue;
       
-      const index = ROOMS[room].findIndex((detail) => detail.userId === userId);
+      const index = ROOMS[room].players.findIndex((detail) => detail.userId === userId);
       if (index !== -1) {
-        const removed = ROOMS[room][index];
+        const removed = ROOMS[room].players[index];
         const socketInstance = io.sockets.sockets.get(removed.socketId);
         
         if (socketInstance) {
@@ -106,9 +106,9 @@ function removePlayerByUserId(userId: string) {
 
         // ตรวจสอบอีกครั้งว่า room ยังคงมีอยู่
         if (ROOMS[room]) {
-          ROOMS[room].splice(index, 1);
+          ROOMS[room].players.splice(index, 1);
           
-          if (ROOMS[room].length === 0) {
+          if (ROOMS[room].players.length === 0) {
             delete ROOMS[room];
             console.log(`Room ${room} deleted because it's empty.`);
           } else {
@@ -138,11 +138,11 @@ io.on("connection", (socket) => {
 
       if (!room) {
         room = `room_${socket.id}`; // สร้างห้องใหม่ถ้าไม่มีห้องว่าง
-        ROOMS[room] = [];
+        ROOMS[room] = { players: [], gameStarted: false };
         console.log(`Created new room: ${room}`);
       }
 
-      ROOMS[room].push({
+      ROOMS[room].players.push({
         userId: data.userId,
         username: data.username,
         socketId: socket.id
@@ -156,7 +156,7 @@ io.on("connection", (socket) => {
       currentRoom = room;
 
       // ถ้ามีผู้เล่นครบ 2 คน ให้เริ่มนับถอยหลัง
-      if (ROOMS[room].length === 2) {
+      if (ROOMS[room].players.length === 2) {
         startCountdown(room);
       }
 
@@ -173,12 +173,12 @@ io.on("connection", (socket) => {
       // ตรวจสอบทุกห้องเพื่อหาและลบผู้เล่น
       for (const room in ROOMS) {
         if (ROOMS[room]) {
-          const playerIndex = ROOMS[room].findIndex(player => player.socketId === socket.id);
+          const playerIndex = ROOMS[room].players.findIndex(player => player.socketId === socket.id);
           
           if (playerIndex !== -1) {
-            ROOMS[room].splice(playerIndex, 1);
+            ROOMS[room].players.splice(playerIndex, 1);
             
-            if (ROOMS[room].length === 0) {
+            if (ROOMS[room].players.length === 0) {
               delete ROOMS[room];
               console.log(`Room ${room} deleted because it's empty.`);
             } else {
@@ -198,7 +198,7 @@ io.on("connection", (socket) => {
   socket.on("message", (msg: string) => {
     try {
       const room = Object.keys(ROOMS).find((r) => 
-        ROOMS[r] && ROOMS[r].some((detail) => detail.socketId === socket.id)
+        ROOMS[r] && ROOMS[r].players.some((detail) => detail.socketId === socket.id)
       );
       
       if (room) {
