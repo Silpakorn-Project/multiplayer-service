@@ -14,9 +14,10 @@
     "socket.io-client": "^4.8.1"
   },
   "scripts": {
-    "dev": "ts-node src/server.ts",
+    "dev": "NODE_ENV=development ts-node src/server.ts",
+    "prod": "NODE_ENV=production ts-node src/server.ts",
     "client": "ts-node src/client.ts",
-    "build": "tsc",
-    "start": "node dist/server.js"
+    "build": "NODE_ENV=developement tsc",
+    "start": "NODE_ENV=developement node dist/server.js"
   }
 }
