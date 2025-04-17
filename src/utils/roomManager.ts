@@ -50,6 +50,8 @@ export function startCountdown(room: string, io: Server) {
                     // update game started status
                     ROOMS[room].gameStarted = true;
 
+                    io.to(room).emit("roomUpdate", ROOMS[room]);
+
                     console.log(`Game started for ${room}`);
                 }
                 countdown--;
